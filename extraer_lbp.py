@@ -1,37 +1,55 @@
 import numpy as np
 from skimage.feature import local_binary_pattern
-from skimage import exposure
-
-# Parámetros de LBP
-radius = 3                # Radio del vecindario circular
-n_points = 8 * radius     # Número de puntos considerados
-method = 'uniform'        # Método de patrón
+import matplotlib.pyplot as plt
 
 # Cargar imágenes preprocesadas
 imagenes = np.load("imagenes.npy")
 print(f"Imágenes cargadas: {imagenes.shape}")
 
-# Lista para guardar características
+# Parámetros LBP
+radius = 1            # Radio de vecindad
+n_points = 8 * radius # Número de puntos vecinos
+METHOD = 'uniform'    # Método de cálculo
+
 lbp_features = []
 
-# Extraer LBP para cada imagen
 for idx, img in enumerate(imagenes):
-    # Calcular patrón LBP
-    lbp = local_binary_pattern(img, n_points, radius, method)
-
+    lbp = local_binary_pattern(img, n_points, radius, METHOD)
+    # Histograma LBP como vector de características
+    (hist, _) = np.histogram(lbp.ravel(),
+                             bins=np.arange(0, n_points + 3),
+                             range=(0, n_points + 2))
     # Normalizar histograma
-    n_bins = int(lbp.max() + 1)
-    hist, _ = np.histogram(lbp.ravel(), bins=n_bins, range=(0, n_bins), density=True)
-
+    hist = hist.astype("float")
+    hist /= (hist.sum() + 1e-7)
     lbp_features.append(hist)
 
-    if idx % 100 == 0:
+    if idx % 1000 == 0:
         print(f"Procesadas {idx} imágenes...")
 
-# Convertir a array de NumPy
 lbp_features = np.array(lbp_features)
-print(f"LBP extraído. Shape final: {lbp_features.shape}")
+print(f"Extracción LBP completada. Shape final: {lbp_features.shape}")
 
-# Guardar
 np.save("lbp_features.npy", lbp_features)
-print("Guardado como lbp_features.npy")
+print("Guardado exitosamente como lbp_features.npy")
+
+# Visualización LBP para una imagen de ejemplo
+ejemplo = 0
+img = imagenes[ejemplo]
+
+lbp_img = local_binary_pattern(img, n_points, radius, METHOD)
+
+plt.figure(figsize=(10, 4))
+
+plt.subplot(1, 2, 1)
+plt.imshow(img, cmap='gray')
+plt.title("Imagen original")
+plt.axis("off")
+
+plt.subplot(1, 2, 2)
+plt.imshow(lbp_img, cmap='gray')
+plt.title("Visualización LBP")
+plt.axis("off")
+
+plt.tight_layout()
+plt.show()

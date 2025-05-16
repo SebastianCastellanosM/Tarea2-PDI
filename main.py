@@ -1,57 +1,52 @@
-import os
-import cv2
 import numpy as np
+import pandas as pd
 
-DATASET_PATH = 'data/101_ObjectCategories'
+DATASET_PATH = 'fer2013.csv'  # Ruta al archivo CSV
+IMG_SIZE = 48  # Tamaño original FER2013
 
-# Clases a usar
-CLASSES = ['airplanes', 'motorbikes']
+# Función opcional para redimensionar y agregar padding (descomentarla si la usas)
+# import cv2
+# def resize_and_pad(img, size):
+#     h, w = img.shape
+#     scale = size / max(h, w)
+#     new_w, new_h = int(w * scale), int(h * scale)
+#     img_resized = cv2.resize(img, (new_w, new_h))
+#     top = (size - new_h) // 2
+#     bottom = size - new_h - top
+#     left = (size - new_w) // 2
+#     right = size - new_w - left
+#     padded = cv2.copyMakeBorder(img_resized, top, bottom, left, right, cv2.BORDER_CONSTANT, value=0)
+#     return padded
 
-# Tamaño objetivo
-IMG_SIZE = 128
+# Leer CSV
+data = pd.read_csv(DATASET_PATH)
 
-# Función para redimensionar manteniendo la proporción y agregando padding
-def resize_and_pad(img, size):
-    h, w = img.shape
-    scale = size / max(h, w)
-    new_w, new_h = int(w * scale), int(h * scale)
-    img_resized = cv2.resize(img, (new_w, new_h))
+# Filtrar filas Training y PublicTest para ejemplo (opcional)
+data = data[data['Usage'].isin(['Training', 'PublicTest'])]
 
-    # Crear imagen cuadrada con padding
-    top = (size - new_h) // 2
-    bottom = size - new_h - top
-    left = (size - new_w) // 2
-    right = size - new_w - left
-
-    padded = cv2.copyMakeBorder(img_resized, top, bottom, left, right, cv2.BORDER_CONSTANT, value=0)
-    return padded
-
-# Listas para imágenes y etiquetas
 images = []
 labels = []
 
-# Cargar imágenes
-for label_idx, class_name in enumerate(CLASSES):
-    class_path = os.path.join(DATASET_PATH, class_name)
-    for filename in os.listdir(class_path):
-        file_path = os.path.join(class_path, filename)
-        img = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
-        if img is None:
-            continue
-        img_processed = resize_and_pad(img, IMG_SIZE)
-        images.append(img_processed)
-        labels.append(label_idx)
+for idx, row in data.iterrows():
+    pixels = row['pixels']
+    emotion = row['emotion']
 
-print(f"Imágenes cargadas: {len(images)}")
-print(f"Clases: {CLASSES}")
+    # Convertir string de pixeles a numpy array
+    img_array = np.array([int(p) for p in pixels.split()]).reshape(IMG_SIZE, IMG_SIZE).astype(np.uint8)
 
-# Convertir a arrays
+    # Si quieres redimensionar y agregar padding, descomenta y usa:
+    # img_array = resize_and_pad(img_array, 128)
+
+    images.append(img_array)
+    labels.append(emotion)
+
 images_np = np.array(images)
 labels_np = np.array(labels)
 
-# Guardar
+print(f"Imágenes cargadas: {images_np.shape}")
+print(f"Etiquetas cargadas: {labels_np.shape}")
+
+# Guardar para usar luego
 np.save("imagenes.npy", images_np)
 np.save("etiquetas.npy", labels_np)
-
-print(f"imagenes.npy shape: {images_np.shape}")
-print(f"etiquetas.npy shape: {labels_np.shape}")
+print("Datos guardados en imagenes.npy y etiquetas.npy")
